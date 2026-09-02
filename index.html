@@ -169,6 +169,31 @@
     .preview-head { padding: 17px; }
   }
 
+
+  .todo-section { margin: 0 0 24px; border: 1px solid var(--line); border-radius: 10px; background: #fff; overflow: hidden; box-shadow: 0 1px 2px rgba(55,53,47,.03); }
+  .todo-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 15px; border-bottom: 1px solid #eeeae5; }
+  .todo-title-wrap { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+  .todo-title { font-size: 11px; color: var(--ink); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+  .todo-month-label { font-size: 11px; color: var(--muted); }
+  .todo-month-nav { display: flex; gap: 3px; }
+  .todo-month { width: 27px; height: 27px; border: 1px solid var(--line); background: #fff; color: #777570; font-size: 14px; cursor: pointer; border-radius: 5px; }
+  .todo-month:hover { background: var(--hover); color: var(--ink); }
+  .todo-list { display: flex; flex-direction: column; }
+  .todo-item { display: flex; align-items: flex-start; gap: 9px; padding: 10px 15px; border-bottom: 1px solid #f0eeea; }
+  .todo-item:hover { background: #fcfbf9; }
+  .todo-check { appearance: none; width: 16px; height: 16px; flex: 0 0 16px; border: 1px solid #c5c1b9; border-radius: 4px; background: #fff; margin: 1px 0 0; cursor: pointer; position: relative; }
+  .todo-check:checked { background: #2f2e2a; border-color: #2f2e2a; }
+  .todo-check:checked::after { content: '✓'; color: #fff; font-size: 11px; position: absolute; left: 2px; top: -1px; }
+  .todo-text { flex: 1; min-width: 0; font-size: 12px; color: #4f4d48; line-height: 1.4; cursor: pointer; }
+  .todo-item.done .todo-text { color: #aaa7a1; text-decoration: line-through; }
+  .todo-delete { border: none; background: none; color: #aaa7a1; cursor: pointer; font-size: 14px; line-height: 1; opacity: 0; padding: 0 2px; }
+  .todo-item:hover .todo-delete { opacity: 1; }
+  .todo-add { width: 100%; border: none; background: none; color: #999690; text-align: left; font-size: 12px; padding: 10px 15px; cursor: pointer; }
+  .todo-add:hover { background: #f8f7f4; color: var(--ink); }
+  .todo-add-form { display: flex; gap: 7px; padding: 9px 15px; border-bottom: 1px solid #f0eeea; }
+  .todo-add-input { min-width: 0; flex: 1; border: 1px solid #dedbd5; border-radius: 6px; padding: 7px 8px; font-size: 12px; background: #fff; color: var(--ink); }
+  .todo-add-save { border: 1px solid #2f2e2a; background: #2f2e2a; color: #fff; border-radius: 6px; font-size: 11px; padding: 6px 10px; cursor: pointer; }
+  .todo-empty { padding: 14px 15px; color: #aaa7a1; font-size: 11px; border-bottom: 1px solid #f0eeea; }
   @keyframes cardIn { from { opacity: 0; transform: translateY(5px); } }
   @keyframes fadeIn { from { opacity: 0; } }
   @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(.985); } }
@@ -311,6 +336,22 @@ function ProjectBoard() {
   const [workspaceName, setWorkspaceName] = useState(() => loadLS("norush_workspace_name", "Norush Creative"));
   const [workspaceLogo, setWorkspaceLogo] = useState(() => loadLS("norush_workspace_logo", LOGO_SRC));
   const [workspaceDraft, setWorkspaceDraft] = useState({ name: workspaceName, logo: workspaceLogo });
+  const currentMonthKey = new Date().getFullYear() + "-" + String(new Date().getMonth() + 1).padStart(2, "0");
+  const [todoMonth, setTodoMonth] = useState(currentMonthKey);
+  const [todos, setTodos] = useState(() => {
+    const saved = loadLS("norush_monthly_todos", null);
+    const key = new Date().getFullYear() + "-" + String(new Date().getMonth() + 1).padStart(2, "0");
+    const defaults = [
+      { id: uid(), text: "Update microstock (Adobe Stock, Magnific, Shutterstock, Vecteezy, dll)", done: false },
+      { id: uid(), text: "Upload portfolio (Instagram, Behance, Dribbble)", done: false },
+      { id: uid(), text: "Create font", done: false }
+    ];
+    if (!saved || typeof saved !== "object") return { [key]: defaults };
+    const current = Array.isArray(saved[key]) ? saved[key] : [];
+    return { ...saved, [key]: current.length ? current : defaults };
+  });
+  const [todoAdding, setTodoAdding] = useState(false);
+  const [todoDraft, setTodoDraft] = useState("");
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -327,6 +368,18 @@ function ProjectBoard() {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
+  useEffect(() => {
+    try { localStorage.setItem("norush_monthly_todos", JSON.stringify(todos)); } catch (e) {}
+  }, [todos]);
+  useEffect(() => {
+    if (filter.type === "month") {
+      setTodoMonth(filter.year + "-" + String(filter.month).padStart(2, "0"));
+    } else if (filter.type === "year") {
+      const now = new Date();
+      const month = now.getFullYear() === filter.year ? now.getMonth() + 1 : 1;
+      setTodoMonth(filter.year + "-" + String(month).padStart(2, "0"));
+    }
+  }, [filter]);
   useEffect(() => {
     try { localStorage.setItem("norush_workspace_name", workspaceName); } catch (e) {}
   }, [workspaceName]);
@@ -377,6 +430,39 @@ function ProjectBoard() {
       if (!lb) return lb;
       return { ...lb, index: (lb.index + delta + lb.images.length) % lb.images.length };
     });
+  }
+
+  function todoItemsForMonth(key) {
+    return Array.isArray(todos[key]) ? todos[key] : [];
+  }
+  function toggleTodo(id) {
+    setTodos(prev => ({
+      ...prev,
+      [todoMonth]: todoItemsForMonth(todoMonth).map(t => t.id === id ? { ...t, done: !t.done } : t)
+    }));
+  }
+  function addTodo(e) {
+    e.preventDefault();
+    const text = todoDraft.trim();
+    if (!text) return;
+    setTodos(prev => ({
+      ...prev,
+      [todoMonth]: [...todoItemsForMonth(todoMonth), { id: uid(), text, done: false }]
+    }));
+    setTodoDraft("");
+    setTodoAdding(false);
+  }
+  function deleteTodo(id) {
+    setTodos(prev => ({
+      ...prev,
+      [todoMonth]: todoItemsForMonth(todoMonth).filter(t => t.id !== id)
+    }));
+  }
+  function shiftTodoMonth(delta) {
+    const [y, m] = todoMonth.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setTodoMonth(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
+    setTodoAdding(false);
   }
 
   function addYear() {
@@ -476,6 +562,7 @@ function ProjectBoard() {
             </div>
           ))}
           <button className="add-year-btn" onClick={addYear}>+ Tahun Baru</button>
+
           <div className="sidebar-footer">Papan proyek pribadi<br />Tersimpan di perangkat ini</div>
         </aside>
 
@@ -498,6 +585,47 @@ function ProjectBoard() {
                 <div className="search-wrap"><input className="search-input" aria-label="Cari proyek" placeholder="Cari proyek…" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
                 <button className="btn-primary" onClick={() => openNew()}>+ Proyek Baru</button>
               </div>
+            </div>
+
+            <div className="todo-section">
+              <div className="todo-head">
+                <div className="todo-title-wrap">
+                  <span className="todo-title">To Do Bulanan</span>
+                  <span className="todo-month-label">
+                    {(() => { const [y,m] = todoMonth.split("-").map(Number); return "— " + MONTHS_ID[m - 1] + " " + y; })()}
+                  </span>
+                </div>
+                <div className="todo-month-nav">
+                  <button type="button" className="todo-month" onClick={() => shiftTodoMonth(-1)} aria-label="Bulan sebelumnya">‹</button>
+                  <button type="button" className="todo-month" onClick={() => shiftTodoMonth(1)} aria-label="Bulan berikutnya">›</button>
+                </div>
+              </div>
+
+              {todoItemsForMonth(todoMonth).length === 0 && (
+                <div className="todo-empty">Belum ada tugas untuk bulan ini.</div>
+              )}
+
+              <div className="todo-list">
+                {todoItemsForMonth(todoMonth).map((todo) => (
+                  <div className={"todo-item" + (todo.done ? " done" : "")} key={todo.id}>
+                    <input className="todo-check" type="checkbox" checked={!!todo.done}
+                      onChange={() => toggleTodo(todo.id)} aria-label={"Tandai selesai: " + todo.text} />
+                    <span className="todo-text" onClick={() => toggleTodo(todo.id)}>{todo.text}</span>
+                    <button className="todo-delete" onClick={() => deleteTodo(todo.id)} aria-label="Hapus tugas">×</button>
+                  </div>
+                ))}
+              </div>
+
+              {todoAdding ? (
+                <form className="todo-add-form" onSubmit={addTodo}>
+                  <input className="todo-add-input" autoFocus value={todoDraft}
+                    onChange={(e) => setTodoDraft(e.target.value)} placeholder="Tulis tugas baru…"
+                    onKeyDown={(e) => { if (e.key === "Escape") { setTodoAdding(false); setTodoDraft(""); } }} />
+                  <button className="todo-add-save" type="submit">Tambah</button>
+                </form>
+              ) : (
+                <button className="todo-add" onClick={() => setTodoAdding(true)}>+ Tambah tugas</button>
+              )}
             </div>
 
             <div className="database-toolbar">
