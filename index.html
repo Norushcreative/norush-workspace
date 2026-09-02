@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Norush Creative — Papan Proyek</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; }
+  * { box-sizing: border-box; }
+  button, input, select { font: inherit; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #b98a60; outline-offset: 2px; }
+  .board-root {
+    --paper: #fbfaf8; --ink: #37352f; --muted: #787774; --line: #e8e5df;
+    --card: #ffffff; --sidebar: #f4f2ee; --hover: #eae7e2; --accent: #9b6a45;
+    font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh;
+  }
+  .app-layout { display: flex; align-items: flex-start; min-height: 100vh; }
+  .sidebar { flex: 0 0 248px; background: var(--sidebar); border-right: 1px solid #ebe8e3; padding: 9px 8px 24px; min-height: 100vh; position: sticky; top: 0; max-height: 100vh; overflow-y: auto; }
+  .workspace-switcher { display: flex; align-items: center; gap: 9px; padding: 7px 8px 14px; font-weight: 600; font-size: 13px; }
+  .workspace-avatar { width: 24px; height: 24px; border-radius: 6px; background: #2f2e2a; color: #fff; display: grid; place-items: center; font-family: 'Newsreader', serif; font-size: 14px; }
+  .workspace-chevron { margin-left: auto; color: var(--muted); font-size: 11px; }
+  .quick-nav { border-bottom: 1px solid #e5e1db; padding-bottom: 8px; margin-bottom: 11px; }
+  .quick-link, .side-all, .add-year-btn { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; background: none; border: none; color: #5f5e5a; padding: 6px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; }
+  .quick-link:hover, .side-all:hover, .add-year-btn:hover { background: var(--hover); color: var(--ink); }
+  .nav-icon { width: 17px; color: #8c8b87; text-align: center; font-size: 14px; }
+  .side-section-label { padding: 5px 9px; color: #96948f; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .side-all { margin-bottom: 5px; font-weight: 500; }
+  .side-all.active, .year-label.active, .month-item.active { background: #e5e1da; color: var(--ink) !important; font-weight: 600; }
+  .year-block { margin-bottom: 2px; }
+  .year-head { display: flex; align-items: center; gap: 2px; }
+  .year-toggle { background: none; border: none; color: #9a9893; cursor: pointer; font-size: 10px; width: 22px; height: 26px; flex: 0 0 22px; padding: 0; border-radius: 4px; }
+  .year-toggle:hover { background: var(--hover); }
+  .year-label { flex: 1; text-align: left; background: none; border: none; font-weight: 500; font-size: 13px; color: #5f5e5a; padding: 6px; border-radius: 5px; cursor: pointer; }
+  .year-label:hover, .month-item:hover { background: var(--hover); color: var(--ink); }
+  .year-count, .month-count { font-size: 10px; color: #aaa7a1; padding-right: 7px; }
+  .month-list { margin: 1px 0 7px 12px; border-left: 1px solid #ddd9d2; padding-left: 10px; }
+  .month-item { display: flex; justify-content: space-between; width: 100%; background: none; border: none; font-size: 12px; color: #777570; padding: 5px 7px; border-radius: 5px; cursor: pointer; text-align: left; }
+  .add-year-btn { margin-top: 5px; color: #8a8883; }
+  .sidebar-footer { margin: 20px 8px 0; padding-top: 12px; border-top: 1px solid #e4e0da; color: #9a9893; font-size: 11px; line-height: 1.5; }
+  .board-main { flex: 1; min-width: 0; padding: 0 0 60px; }
+  .page-bar { height: 45px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; border-bottom: 1px solid rgba(232,229,223,.75); font-size: 12px; position: sticky; top: 0; background: rgba(251,250,248,.93); backdrop-filter: blur(12px); z-index: 4; }
+  .breadcrumb { display: flex; align-items: center; gap: 7px; color: var(--muted); }
+  .crumb-icon { overflow: hidden; width: 20px; height: 20px; border-radius: 4px; background: #2f2e2a; color: #fff; display: grid; place-items: center; font-family: 'Newsreader', serif; }
+  .page-actions { display: flex; align-items: center; gap: 4px; }
+  .page-action { border: none; background: none; color: #66645f; padding: 5px 7px; border-radius: 5px; cursor: pointer; }
+  .page-action:hover { background: var(--hover); }
+  .content-wrap { padding: 48px 42px 0; max-width: 1540px; margin: 0 auto; }
+  .page-icon { overflow: hidden; width: 58px; height: 58px; border-radius: 13px; background: #efe4d9; color: #8c5f3e; display: grid; place-items: center; font-family: 'Newsreader', serif; font-size: 31px; margin-bottom: 17px; transform: rotate(-2deg); }
+  .topbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 25px; }
+  .brand-mark { display: flex; align-items: center; gap: 12px; }
+  .brand-logo { display: block; width: 42px; height: 42px; object-fit: contain; border-radius: 8px; flex: 0 0 42px; }
+  .brand-title { font-family: 'Newsreader', serif; font-weight: 600; font-size: clamp(30px, 3.5vw, 42px); letter-spacing: -.035em; margin: 0; line-height: 1; }
+  .brand-sub { margin: 9px 0 0; font-size: 13px; color: var(--muted); }
+  .top-actions { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .search-wrap { position: relative; }
+  .search-wrap::before { content: '⌕'; position: absolute; left: 10px; top: 6px; color: #92908b; font-size: 16px; }
+  .search-input { font-size: 12px; padding: 7px 10px 7px 29px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 6px; width: 190px; box-shadow: 0 1px 1px rgba(55,53,47,.03); }
+  .btn-primary { font-weight: 600; font-size: 12px; background: #2f2e2a; color: #fff; border: 1px solid #2f2e2a; padding: 7px 11px; border-radius: 6px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .btn-primary:hover { background: #484640; transform: translateY(-1px); }
+  .btn-ghost { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 6px 8px; border-radius: 5px; }
+  .btn-ghost:hover { background: var(--hover); color: var(--ink); }
+  .database-toolbar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); margin-bottom: 16px; min-width: 0; }
+  .view-tabs { display: flex; align-items: center; gap: 3px; }
+  .view-tab { border: none; background: none; padding: 8px 10px 9px; color: var(--muted); font-size: 12px; cursor: pointer; border-bottom: 2px solid transparent; }
+  .view-tab.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+  .toolbar-meta { color: #9a9893; font-size: 11px; padding-right: 3px; }
+  .warn-banner { font-size: 12px; color: #8b5d35; margin-bottom: 14px; padding: 9px 11px; border: 1px solid #ddc4aa; border-radius: 6px; background: #fbf2e9; }
+  .columns { display: flex; gap: 11px; overflow-x: auto; padding: 1px 2px 22px; align-items: flex-start; scrollbar-color: #d8d4cd transparent; }
+  .column { flex: 0 0 246px; }
+  .col-head { display: flex; justify-content: flex-start; align-items: center; gap: 7px; padding: 3px 3px 9px; margin-bottom: 2px; }
+  .col-title { font-size: 11px; font-weight: 600; padding: 3px 7px; background: #e8e7e4; border-radius: 4px; color: #5e5d59; }
+  .column:nth-child(1) .col-title { background: #e7e3df; }
+  .column:nth-child(2) .col-title { background: #f1dfca; color: #7b5735; }
+  .column:nth-child(3) .col-title { background: #f3dfdf; color: #865557; }
+  .column:nth-child(4) .col-title { background: #dfebe8; color: #3e6860; }
+  .column:nth-child(5) .col-title { background: #dce9df; color: #426348; }
+  .col-count { font-size: 11px; color: #9a9893; }
+  .col-drop { min-height: 92px; padding-bottom: 6px; border-radius: 7px; }
+  .col-drop:has(.card:active) { background: rgba(232,229,223,.45); }
+  .col-add { width: 100%; text-align: left; background: none; border: none; border-radius: 6px; padding: 7px 9px; font-size: 12px; color: #999690; cursor: pointer; margin-top: 2px; }
+  .col-add:hover { background: var(--hover); color: var(--ink); }
+  .empty-col { font-size: 11px; color: #aaa7a1; padding: 9px 8px 13px; }
+  .card { position: relative; background: var(--card); border: 1px solid #e5e2dc; border-radius: 7px; padding: 11px 11px 10px; margin-bottom: 7px; cursor: grab; box-shadow: 0 1px 2px rgba(55,53,47,.06); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; animation: cardIn .35s ease both; }
+  .card:hover { transform: translateY(-2px); border-color: #d8d4cd; box-shadow: 0 5px 16px rgba(55,53,47,.09); }
+  .card:active { cursor: grabbing; transform: rotate(1deg) scale(.99); }
+  .card-top { display: flex; justify-content: space-between; gap: 6px; align-items: flex-start; }
+  .card-title { font-family: 'Newsreader', serif; font-weight: 600; font-size: 15px; margin: 0 0 4px; line-height: 1.25; letter-spacing: -.01em; }
+  .card-client { font-size: 11px; color: var(--muted); margin: 0 0 9px; }
+  .tag-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tag { font-size: 9.5px; padding: 2px 6px; border-radius: 4px; color: #fff; white-space: nowrap; opacity: .87; }
+  .tag-source { background: #f0efec; color: #75736e; }
+  .card-meta { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #f0eeea; font-size: 10.5px; color: var(--muted); }
+  .due-badge { padding: 2px 5px; border-radius: 4px; font-weight: 600; }
+  .due-late { background: #f8e2df; color: #a84f47; }
+  .due-today { background: #f5e8cd; color: #8a672d; }
+  .due-soon { background: #eee9df; color: #746552; }
+  .due-normal { color: var(--muted); }
+  .card-images { display: flex; gap: 4px; margin: 9px -2px -1px; align-items: center; }
+  .card-thumb { width: 35px; height: 35px; object-fit: cover; border-radius: 4px; border: 1px solid var(--line); }
+  .card-thumb-more { font-size: 10px; color: var(--muted); }
+  .menu-btn { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 16px; padding: 0 3px; line-height: 1; border-radius: 4px; }
+  .menu-btn:hover { background: var(--hover); }
+  .menu-pop { position: absolute; top: 28px; right: 7px; background: #fff; border: 1px solid var(--line); border-radius: 7px; z-index: 5; overflow: hidden; min-width: 132px; padding: 4px; box-shadow: 0 8px 28px rgba(55,53,47,.16); }
+  .menu-item { display: block; width: 100%; text-align: left; padding: 7px 9px; font-size: 12px; background: none; border: none; cursor: pointer; color: var(--ink); border-radius: 4px; }
+  .menu-item:hover { background: #f3f1ed; }
+  .menu-item.danger { color: #b3524b; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(38,36,32,.42); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 20px; animation: fadeIn .18s ease; }
+  .modal { background: var(--paper); border: 1px solid var(--line); border-radius: 11px; width: 100%; max-width: 440px; max-height: 88vh; overflow-y: auto; padding: 24px; box-shadow: 0 24px 70px rgba(38,36,32,.22); animation: modalIn .22s ease; }
+  .modal h2 { font-family: 'Newsreader', serif; font-size: 25px; margin: 0 0 19px; letter-spacing: -.02em; }
+  .field { margin-bottom: 13px; }
+  .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
+  .field input, .field select { width: 100%; font-size: 12px; padding: 8px 9px; border: 1px solid #dedbd5; border-radius: 6px; background: #fff; color: var(--ink); }
+  .field input:hover, .field select:hover { border-color: #cac6be; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row > div { flex: 1; }
+  .img-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .img-thumb-wrap { position: relative; width: 64px; height: 64px; }
+  .img-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; }
+  .img-remove { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); color: var(--paper); border: none; cursor: pointer; font-size: 10px; line-height: 1; }
+  .modal-actions { display: flex; justify-content: space-between; margin-top: 20px; align-items: center; }
+  .modal-actions-right { display: flex; gap: 8px; }
+  .btn-secondary { background: #fff; border: 1px solid var(--line); color: var(--ink); padding: 7px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+
+  .workspace-avatar.has-logo { background: #fff; overflow: hidden; }
+  .workspace-avatar.has-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .workspace-switcher { cursor: pointer; }
+  .workspace-switcher:hover { background: var(--hover); border-radius: 6px; }
+  .editable-hint { font-size: 10px; color: #aaa7a1; margin-left: 4px; opacity: 0; transition: opacity .15s; }
+  .workspace-switcher:hover .editable-hint { opacity: 1; }
+  .preview-modal-overlay { position: fixed; inset: 0; background: rgba(28,27,24,.56); backdrop-filter: blur(6px); z-index: 30; display: flex; align-items: center; justify-content: center; padding: 24px; animation: fadeIn .18s ease; }
+  .preview-modal { width: min(980px, 100%); max-height: 92vh; overflow-y: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 28px 90px rgba(0,0,0,.28); animation: modalIn .22s ease; }
+  .preview-head { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding: 22px 25px; background: rgba(251,250,248,.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+  .preview-kicker { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; margin-bottom: 5px; }
+  .preview-title { font-family: 'Newsreader', serif; font-size: 30px; line-height: 1.1; margin: 0 0 5px; letter-spacing: -.025em; }
+  .preview-client { color: var(--muted); font-size: 12px; margin: 0; }
+  .preview-close { border: 1px solid var(--line); background: #fff; color: var(--ink); width: 32px; height: 32px; border-radius: 7px; cursor: pointer; font-size: 16px; }
+  .preview-close:hover { background: var(--hover); }
+  .preview-body { padding: 25px; }
+  .preview-info { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 9px; margin-bottom: 24px; }
+  .preview-info-item { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; }
+  .preview-info-label { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #9a9893; margin-bottom: 4px; font-weight: 600; }
+  .preview-info-value { font-size: 12px; color: var(--ink); font-weight: 500; }
+  .preview-gallery { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+  .preview-image { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #f0eeea; border: 1px solid var(--line); border-radius: 9px; cursor: zoom-in; transition: transform .15s, box-shadow .15s; }
+  .preview-image:hover { transform: translateY(-1px); box-shadow: 0 7px 20px rgba(55,53,47,.10); }
+  .preview-empty { padding: 35px 15px; text-align: center; color: #aaa7a1; font-size: 12px; border: 1px dashed var(--line); border-radius: 9px; }
+  .lightbox-overlay { position: fixed; inset: 0; z-index: 50; background: rgba(20,19,17,.88); display: flex; align-items: center; justify-content: center; padding: 25px; animation: fadeIn .15s ease; }
+  .lightbox-image { max-width: 94vw; max-height: 88vh; object-fit: contain; border-radius: 5px; box-shadow: 0 20px 80px rgba(0,0,0,.35); cursor: zoom-out; }
+  .lightbox-close { position: fixed; top: 17px; right: 19px; width: 38px; height: 38px; border: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.25); color: #fff; border-radius: 50%; cursor: pointer; font-size: 19px; }
+  .lightbox-nav { position: fixed; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.25); color: #fff; border-radius: 50%; cursor: pointer; font-size: 20px; }
+  .lightbox-prev { left: 18px; }
+  .lightbox-next { right: 18px; }
+  .settings-modal { max-width: 480px; }
+  .logo-upload { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px dashed #d7d3cc; border-radius: 8px; background: #fff; }
+  .logo-preview { width: 54px; height: 54px; border-radius: 11px; object-fit: cover; border: 1px solid var(--line); background: #2f2e2a; }
+  .logo-upload-copy { flex: 1; font-size: 11px; color: var(--muted); line-height: 1.45; }
+  .logo-upload-copy strong { display: block; color: var(--ink); margin-bottom: 2px; }
+  .card-preview-btn { margin-top: 8px; width: 100%; text-align: center; border: 1px solid var(--line); background: #faf9f7; color: #6b6964; border-radius: 5px; padding: 5px; font-size: 10px; cursor: pointer; }
+  .card-preview-btn:hover { background: var(--hover); color: var(--ink); }
+  @media (max-width: 700px) {
+    .preview-info { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .preview-gallery { grid-template-columns: 1fr; }
+    .preview-body { padding: 17px; }
+    .preview-head { padding: 17px; }
+  }
+
+  @keyframes cardIn { from { opacity: 0; transform: translateY(5px); } }
+  @keyframes fadeIn { from { opacity: 0; } }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(.985); } }
+  @media (max-width: 800px) {
+    .app-layout { flex-direction: column; }
+    .sidebar { flex: none; width: 100%; min-height: unset; max-height: none; position: static; border-right: none; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+    .quick-nav, .side-section-label, .sidebar-footer { display: none; }
+    .workspace-switcher { padding-bottom: 4px; }
+    .side-all { margin-top: 4px; }
+    .year-block { display: inline-block; width: calc(50% - 3px); vertical-align: top; }
+    .month-list { max-height: 132px; overflow-y: auto; }
+    .add-year-btn { width: auto; }
+    .content-wrap { padding: 32px 18px 0; }
+    .page-bar { top: 0; }
+    .top-actions { width: 100%; }
+    .search-wrap { flex: 1; }
+    .search-input { width: 100%; }
+  }
+  @media (max-width: 520px) {
+    .content-wrap { padding-inline: 14px; }
+    .page-actions .page-action:not(:last-child) { display: none; }
+    .brand-title { font-size: 35px; }
+    .field-row { flex-direction: column; gap: 0; }
+    .modal { padding: 19px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const STAGES = [
+  { id: "inquiry", label: "Permintaan Baru" },
+  { id: "concept", label: "Konsep & Draf" },
+  { id: "revision", label: "Revisi Klien" },
+  { id: "approval", label: "Persetujuan Akhir" },
+  { id: "done", label: "Selesai & Dibayar" },
+];
+const WORK_TYPES = [
+  { id: "logo", label: "Logo", color: "#3B5D50" },
+  { id: "monogram", label: "Monogram", color: "#8B5E34" },
+  { id: "wordmark", label: "Wordmark", color: "#C4622D" },
+  { id: "lettering", label: "Lettering", color: "#5B5F97" },
+  { id: "brandkit", label: "Brand Kit", color: "#2F5D62" },
+  { id: "other", label: "Lainnya", color: "#6B6A62" },
+];
+const SOURCES = ["Fiverr", "Dribbble", "Instagram", "Langsung", "Lainnya"];
+const MONTHS_ID = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const CURRENCIES = ["IDR", "USD"];
+const LOGO_SRC = "data:image/png;base64,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";
+const workType = (id) => WORK_TYPES.find((w) => w.id === id) || WORK_TYPES[5];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+function fileToResizedDataURL(file, maxDim = 1000, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+        else if (height > maxDim) { width = Math.round(width * (maxDim / height)); height = maxDim; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function seedData() {
+  return [
+    { id: uid(), title: "Wordmark — Cafe Luna", client: "Cafe Luna", source: "Instagram", type: "wordmark", price: 850000, currency: "IDR", due: "2026-09-05", stage: "revision", year: 2026, month: 9, images: [] },
+    { id: uid(), title: "Monogram — J&R Studio", client: "J&R Studio", source: "Fiverr", type: "monogram", price: 450000, currency: "IDR", due: "2026-09-02", stage: "approval", year: 2026, month: 9, images: [] },
+    { id: uid(), title: "Logo — Warung Ibu Sari", client: "Ibu Sari", source: "Dribbble", type: "logo", price: 1200000, currency: "IDR", due: "2026-09-10", stage: "concept", year: 2026, month: 9, images: [] },
+    { id: uid(), title: "Lettering label kemasan", client: "Kopi Ranting", source: "Langsung", type: "lettering", price: 600000, currency: "IDR", due: "2026-08-31", stage: "inquiry", year: 2026, month: 8, images: [] },
+    { id: uid(), title: "Brand Kit — Bloom Florist", client: "Bloom Florist", source: "Instagram", type: "brandkit", price: 150, currency: "USD", due: "2026-09-21", stage: "done", year: 2026, month: 9, images: [] },
+  ];
+}
+
+function dueBadge(due) {
+  if (!due) return null;
+  const d = new Date(due + "T00:00:00");
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / 86400000);
+  if (diff < 0) return { text: `Lewat ${Math.abs(diff)} hari`, tone: "late" };
+  if (diff === 0) return { text: "Hari ini", tone: "today" };
+  if (diff <= 3) return { text: `H-${diff}`, tone: "soon" };
+  return { text: d.toLocaleDateString("id-ID", { day: "numeric", month: "short" }), tone: "normal" };
+}
+
+function formatPrice(p) {
+  if (!p.price) return "—";
+  if (p.currency === "USD") return `$${Number(p.price).toLocaleString("en-US")}`;
+  return `Rp${Number(p.price).toLocaleString("id-ID")}`;
+}
+
+function emptyFormFor(filter) {
+  const today = new Date();
+  const year = filter.type !== "all" ? filter.year : today.getFullYear();
+  const month = filter.type === "month" ? filter.month : today.getMonth() + 1;
+  return { title: "", client: "", source: SOURCES[0], type: WORK_TYPES[0].id, price: "", currency: "IDR", due: "", images: [], stage: "inquiry", year, month };
+}
+
+function loadLS(key, fallback) {
+  try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+  catch (e) { return fallback; }
+}
+
+function ProjectBoard() {
+  const [projects, setProjects] = useState(() => loadLS("norush_projects", null) || seedData());
+  const [years, setYears] = useState(() => {
+    const stored = loadLS("norush_years", null);
+    if (stored) return stored;
+    const y = new Date().getFullYear();
+    return Array.from(new Set([y, ...seedData().map(p => p.year)]));
+  });
+  const [expanded, setExpanded] = useState({ [new Date().getFullYear()]: true });
+  const [filter, setFilter] = useState({ type: "all" });
+  const [storageOk, setStorageOk] = useState(true);
+  const [query, setQuery] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(emptyFormFor({ type: "all" }));
+  const [menuOpenId, setMenuOpenId] = useState(null);
+  const [draggedId, setDraggedId] = useState(null);
+  const [previewId, setPreviewId] = useState(null);
+  const [lightbox, setLightbox] = useState(null);
+  const [workspaceSettingsOpen, setWorkspaceSettingsOpen] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState(() => loadLS("norush_workspace_name", "Norush Creative"));
+  const [workspaceLogo, setWorkspaceLogo] = useState(() => loadLS("norush_workspace_logo", LOGO_SRC));
+  const [workspaceDraft, setWorkspaceDraft] = useState({ name: workspaceName, logo: workspaceLogo });
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    try { localStorage.setItem("norush_projects", JSON.stringify(projects)); setStorageOk(true); }
+    catch (e) { setStorageOk(false); }
+  }, [projects]);
+  useEffect(() => {
+    try { localStorage.setItem("norush_years", JSON.stringify(years)); }
+    catch (e) { setStorageOk(false); }
+  }, [years]);
+  useEffect(() => {
+    function onClick(e) { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpenId(null); }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem("norush_workspace_name", workspaceName); } catch (e) {}
+  }, [workspaceName]);
+  useEffect(() => {
+    try { localStorage.setItem("norush_workspace_logo", workspaceLogo); } catch (e) {}
+  }, [workspaceLogo]);
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.key === "Escape") {
+        if (lightbox) setLightbox(null);
+        else if (previewId) setPreviewId(null);
+        else if (workspaceSettingsOpen) setWorkspaceSettingsOpen(false);
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [lightbox, previewId, workspaceSettingsOpen]);
+
+  function openWorkspaceSettings() {
+    setWorkspaceDraft({ name: workspaceName, logo: workspaceLogo });
+    setWorkspaceSettingsOpen(true);
+  }
+  function handleWorkspaceLogo(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setWorkspaceDraft(d => ({ ...d, logo: ev.target.result }));
+    reader.readAsDataURL(file);
+  }
+  function saveWorkspaceSettings(e) {
+    e.preventDefault();
+    setWorkspaceName(workspaceDraft.name.trim() || "Norush Creative");
+    setWorkspaceLogo(workspaceDraft.logo || LOGO_SRC);
+    setWorkspaceSettingsOpen(false);
+  }
+  function openPreview(id) {
+    setPreviewId(id);
+    setLightbox(null);
+    setMenuOpenId(null);
+  }
+  function openLightbox(images, index = 0) {
+    if (!images || !images.length) return;
+    setLightbox({ images, index });
+  }
+  function changeLightbox(delta) {
+    setLightbox(lb => {
+      if (!lb) return lb;
+      return { ...lb, index: (lb.index + delta + lb.images.length) % lb.images.length };
+    });
+  }
+
+  function addYear() {
+    const next = years.length ? Math.max(...years) + 1 : new Date().getFullYear();
+    setYears([...years, next]);
+    setExpanded((e) => ({ ...e, [next]: true }));
+    setFilter({ type: "year", year: next });
+  }
+  function toggleExpand(year) { setExpanded((e) => ({ ...e, [year]: !e[year] })); }
+  function openNew(stage) { setEditingId(null); setForm({ ...emptyFormFor(filter), stage: stage || "inquiry" }); setModalOpen(true); }
+  function openEdit(p) { setEditingId(p.id); setForm({ ...p, price: p.price || "", currency: p.currency || "IDR", images: p.images || [] }); setModalOpen(true); setMenuOpenId(null); }
+
+  async function handleImageUpload(e) {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    for (const file of files) {
+      try {
+        const dataUrl = await fileToResizedDataURL(file);
+        setForm((f) => ({ ...f, images: [...(f.images || []), dataUrl] }));
+      } catch (err) { /* skip file on error */ }
+    }
+  }
+  function removeImage(idx) { setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== idx) })); }
+
+  function saveForm(e) {
+    e.preventDefault();
+    if (!form.title.trim()) return;
+    let yearNum = Number(form.year) || new Date().getFullYear();
+    let monthNum = Number(form.month) || 1;
+    if (form.due) {
+      const d = new Date(form.due + "T00:00:00");
+      yearNum = d.getFullYear();
+      monthNum = d.getMonth() + 1;
+    }
+    const payload = { ...form, price: form.price === "" ? 0 : Number(form.price), year: yearNum, month: monthNum, id: editingId || uid() };
+    if (editingId) setProjects(projects.map((p) => (p.id === editingId ? payload : p)));
+    else setProjects([...projects, payload]);
+    if (!years.includes(yearNum)) { setYears([...years, yearNum].sort((a,b)=>a-b)); setExpanded((e)=>({...e,[yearNum]:true})); }
+    setModalOpen(false);
+  }
+  function deleteProject(id) { setProjects(projects.filter((p) => p.id !== id)); setMenuOpenId(null); }
+  function moveProject(id, stage) { setProjects(projects.map((p) => (p.id === id ? { ...p, stage } : p))); }
+  function resetBoard() { if (window.confirm("Hapus semua proyek dari papan ini? Tindakan ini tidak bisa dibatalkan.")) setProjects([]); }
+
+  const displayedYears = Array.from(new Set([...years, ...projects.map((p) => p.year)])).sort((a, b) => b - a);
+  const countYear = (year) => projects.filter((p) => p.year === year).length;
+  const countMonth = (year, month) => projects.filter((p) => p.year === year && p.month === month).length;
+  const workspaceFiltered = projects.filter((p) => {
+    if (filter.type === "all") return true;
+    if (filter.type === "year") return p.year === filter.year;
+    if (filter.type === "month") return p.year === filter.year && p.month === filter.month;
+    return true;
+  });
+  const filtered = workspaceFiltered.filter((p) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (p.title + " " + p.client).toLowerCase().includes(q);
+  });
+  const filterLabel = filter.type === "all" ? "Semua proyek" : filter.type === "year" ? `Tahun ${filter.year}` : `${MONTHS_ID[filter.month - 1]} ${filter.year}`;
+
+  return (
+    <div className="board-root">
+      <div className="app-layout">
+        <aside className="sidebar">
+          <div className="workspace-switcher">
+            <span className="workspace-avatar">N</span>
+            <span>Norush Creative</span>
+            <span className="workspace-chevron">⌄</span>
+          </div>
+          <div className="quick-nav">
+            <button className="quick-link"><span className="nav-icon">⌕</span>Pencarian</button>
+            <button className="quick-link"><span className="nav-icon">◷</span>Pembaruan</button>
+            <button className="quick-link"><span className="nav-icon">▣</span>Arsip</button>
+          </div>
+          <div className="side-section-label">Ruang kerja</div>
+          <button className={"side-all" + (filter.type === "all" ? " active" : "")} onClick={() => setFilter({ type: "all" })}><span className="nav-icon">▤</span>Semua Proyek</button>
+          {displayedYears.map((year) => (
+            <div className="year-block" key={year}>
+              <div className="year-head">
+                <button className="year-toggle" onClick={() => toggleExpand(year)}>{expanded[year] ? "▾" : "▸"}</button>
+                <button className={"year-label" + (filter.type === "year" && filter.year === year ? " active" : "")} onClick={() => setFilter({ type: "year", year })}>{year}</button>
+                <span className="year-count">{countYear(year)}</span>
+              </div>
+              {expanded[year] && (
+                <div className="month-list">
+                  {MONTHS_ID.map((m, idx) => {
+                    const monthNum = idx + 1;
+                    const c = countMonth(year, monthNum);
+                    return (
+                      <button key={m} className={"month-item" + (filter.type === "month" && filter.year === year && filter.month === monthNum ? " active" : "")} onClick={() => setFilter({ type: "month", year, month: monthNum })}>
+                        <span>{m}</span><span className="month-count">{c || ""}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
+          <button className="add-year-btn" onClick={addYear}>+ Tahun Baru</button>
+          <div className="sidebar-footer">Papan proyek pribadi<br />Tersimpan di perangkat ini</div>
+        </aside>
+
+        <main className="board-main">
+          <div className="page-bar">
+            <div className="breadcrumb"><span className="crumb-icon">{workspaceLogo ? <img src={workspaceLogo} alt="" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:"4px"}} /> : workspaceName.slice(0,1).toUpperCase()}</span><span>{workspaceName}</span><span>/</span><span>Proyek</span></div>
+            <div className="page-actions">
+              <button className="page-action">Bagikan</button>
+              <button className="page-action">Favorit</button>
+              <button className="page-action">•••</button>
+            </div>
+          </div>
+          <div className="content-wrap">
+            <div className="page-icon">{workspaceLogo ? <img src={workspaceLogo} alt="" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:"13px"}} /> : workspaceName.slice(0,1).toUpperCase()}</div>
+            <div className="topbar">
+              <div className="brand-mark">
+                <img className="brand-logo" src={LOGO_SRC} alt="" />
+                <div>
+                  <h1 className="brand-title">{workspaceName}</h1>
+                  <p className="brand-sub">Workspace · Kelola seluruh pekerjaan dalam satu ruang.</p>
+                </div>
+              </div>
+              <div className="top-actions">
+                <div className="search-wrap"><input className="search-input" aria-label="Cari proyek" placeholder="Cari proyek…" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
+                <button className="btn-primary" onClick={() => openNew()}>+ Proyek Baru</button>
+              </div>
+            </div>
+
+            <div className="database-toolbar">
+              <div className="view-tabs">
+                <button className="view-tab active">▥ Papan</button>
+                <button className="view-tab">≡ Daftar</button>
+              </div>
+              <div className="toolbar-meta">{filterLabel} · {filtered.length} proyek</div>
+            </div>
+
+            {!storageOk && <div className="warn-banner">Penyimpanan browser sedang bermasalah — perubahan mungkin tidak tersimpan permanen.</div>}
+
+            <div className="columns">
+              {STAGES.map((stage) => {
+                const items = filtered.filter((p) => p.stage === stage.id);
+                return (
+                  <div className="column" key={stage.id}>
+                    <div className="col-head"><span className="col-title">{stage.label}</span><span className="col-count">{items.length}</span></div>
+                    <div className="col-drop" onDragOver={(e) => e.preventDefault()} onDrop={() => { if (draggedId) moveProject(draggedId, stage.id); setDraggedId(null); }}>
+                      {items.length === 0 && <div className="empty-col">Belum ada proyek di sini.</div>}
+                      {items.map((p) => {
+                        const wt = workType(p.type);
+                        const badge = dueBadge(p.due);
+                        return (
+                          <div key={p.id} className="card" draggable onDragStart={() => setDraggedId(p.id)} onClick={() => openPreview(p.id)}>
+                            <div className="card-top">
+                              <div>
+                                <p className="card-title">{p.title}</p>
+                                <p className="card-client">{p.client || "Tanpa nama klien"}</p>
+                              </div>
+                              <button className="menu-btn" aria-label="Menu proyek" onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === p.id ? null : p.id); }}>⋯</button>
+                            </div>
+                            {menuOpenId === p.id && (
+                              <div className="menu-pop" ref={menuRef} onClick={(e) => e.stopPropagation()}>
+                                <button className="menu-item" onClick={() => openEdit(p)}>Edit</button>
+                                <button className="menu-item danger" onClick={() => deleteProject(p.id)}>Hapus proyek</button>
+                              </div>
+                            )}
+                            <div className="tag-row">
+                              <span className="tag" style={{ background: wt.color }}>{wt.label}</span>
+                              <span className="tag tag-source">{p.source}</span>
+                            </div>
+                            <div className="card-meta">
+                              <span>{formatPrice(p)}</span>
+                              {badge && <span className={`due-badge due-${badge.tone}`}>{badge.text}</span>}
+                            </div>
+                            {p.images && p.images.length > 0 && (
+                              <div className="card-images" onClick={(e) => e.stopPropagation()}>
+                                {p.images.slice(0, 3).map((src, i) => (
+                                  <img key={i} src={src} className="card-thumb" alt="Referensi proyek"
+                                    onClick={() => openLightbox(p.images, i)} />
+                                ))}
+                                {p.images.length > 3 && <span className="card-thumb-more">+{p.images.length - 3}</span>}
+                              </div>
+                            )}
+                            <button className="card-preview-btn" onClick={(e) => { e.stopPropagation(); openPreview(p.id); }}>Lihat full preview ↗</button>
+                          </div>
+                        );
+                      })}
+                      <button className="col-add" onClick={() => openNew(stage.id)}>+ Tambah proyek</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <button className="btn-ghost" onClick={resetBoard}>Reset papan</button>
+          </div>
+        </main>
+      </div>
+
+      {previewId && (() => {
+        const p = projects.find(x => x.id === previewId);
+        if (!p) return null;
+        const wt = workType(p.type);
+        const badge = dueBadge(p.due);
+        return (
+          <div className="preview-modal-overlay" onClick={() => setPreviewId(null)}>
+            <section className="preview-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="preview-head">
+                <div>
+                  <div className="preview-kicker">{wt.label} · {STAGES.find(s => s.id === p.stage)?.label || p.stage}</div>
+                  <h2 className="preview-title">{p.title}</h2>
+                  <p className="preview-client">{p.client || "Tanpa nama klien"}</p>
+                </div>
+                <div style={{display:"flex",gap:"7px"}}>
+                  <button className="btn-secondary" onClick={() => { setPreviewId(null); openEdit(p); }}>Edit</button>
+                  <button className="preview-close" onClick={() => setPreviewId(null)} aria-label="Tutup">×</button>
+                </div>
+              </div>
+              <div className="preview-body">
+                <div className="preview-info">
+                  <div className="preview-info-item"><span className="preview-info-label">Klien</span><span className="preview-info-value">{p.client || "—"}</span></div>
+                  <div className="preview-info-item"><span className="preview-info-label">Sumber</span><span className="preview-info-value">{p.source || "—"}</span></div>
+                  <div className="preview-info-item"><span className="preview-info-label">Nilai</span><span className="preview-info-value">{formatPrice(p)}</span></div>
+                  <div className="preview-info-item"><span className="preview-info-label">Deadline</span><span className="preview-info-value">{badge ? badge.text : "—"}</span></div>
+                </div>
+                {p.images && p.images.length ? (
+                  <div className="preview-gallery">
+                    {p.images.map((src, i) => (
+                      <img key={i} className="preview-image" src={src} alt={"Referensi " + (i + 1)}
+                        onClick={() => openLightbox(p.images, i)} title="Klik untuk memperbesar" />
+                    ))}
+                  </div>
+                ) : <div className="preview-empty">Belum ada attachment gambar untuk proyek ini.</div>}
+              </div>
+            </section>
+          </div>
+        );
+      })()}
+
+      {workspaceSettingsOpen && (
+        <div className="modal-overlay" onClick={() => setWorkspaceSettingsOpen(false)}>
+          <form className="modal settings-modal" onClick={(e) => e.stopPropagation()} onSubmit={saveWorkspaceSettings}>
+            <h2>Identitas Workspace</h2>
+            <div className="field">
+              <label>Nama Workspace</label>
+              <input autoFocus value={workspaceDraft.name} onChange={(e) => setWorkspaceDraft({...workspaceDraft, name:e.target.value})} placeholder="Nama workspace" />
+            </div>
+            <div className="field">
+              <label>Logo Workspace</label>
+              <div className="logo-upload">
+                <img className="logo-preview" src={workspaceDraft.logo || LOGO_SRC} alt="" />
+                <div className="logo-upload-copy"><strong>Ganti logo</strong>PNG, JPG, atau WEBP. Logo disimpan di browser perangkat ini.</div>
+                <label className="btn-secondary" style={{cursor:"pointer"}}>
+                  Pilih
+                  <input type="file" accept="image/*" onChange={handleWorkspaceLogo} style={{display:"none"}} />
+                </label>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <div></div>
+              <div className="modal-actions-right">
+                <button type="button" className="btn-secondary" onClick={() => setWorkspaceSettingsOpen(false)}>Batal</button>
+                <button type="submit" className="btn-primary">Simpan</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {lightbox && (
+        <div className="lightbox-overlay" onClick={() => setLightbox(null)}>
+          <button className="lightbox-close" onClick={() => setLightbox(null)} aria-label="Tutup">×</button>
+          {lightbox.images.length > 1 && <button className="lightbox-nav lightbox-prev" onClick={(e) => {e.stopPropagation(); changeLightbox(-1);}}>‹</button>}
+          <img className="lightbox-image" src={lightbox.images[lightbox.index]} alt="Preview attachment"
+            onClick={(e) => e.stopPropagation()} />
+          {lightbox.images.length > 1 && <button className="lightbox-nav lightbox-next" onClick={(e) => {e.stopPropagation(); changeLightbox(1);}}>›</button>}
+        </div>
+      )}
+
+      {modalOpen && (
+        <div className="modal-overlay" onClick={() => setModalOpen(false)}>
+          <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={saveForm}>
+            <h2>{editingId ? "Edit Proyek" : "Proyek Baru"}</h2>
+            <div className="field">
+              <label>Nama Proyek</label>
+              <input autoFocus value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="mis. Wordmark — Toko Kopi Senja" required />
+            </div>
+            <div className="field-row">
+              <div className="field"><label>Nama Klien</label><input value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })} /></div>
+              <div className="field"><label>Sumber Klien</label>
+                <select value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
+                  {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field"><label>Jenis Pekerjaan</label>
+                <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+                  {WORK_TYPES.map((w) => <option key={w.id} value={w.id}>{w.label}</option>)}
+                </select>
+              </div>
+              <div className="field"><label>Tahap</label>
+                <select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })}>
+                  {STAGES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="field">
+              <label>Deadline</label>
+              <input type="date" value={form.due} onChange={(e) => setForm({ ...form, due: e.target.value })} />
+            </div>
+            <div className="field-row">
+              <div className="field"><label>Harga</label><input type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></div>
+              <div className="field"><label>Mata Uang</label>
+                <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
+                  {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="field">
+              <label>Referensi Gambar</label>
+              <input type="file" accept="image/*" multiple onChange={handleImageUpload} />
+              {form.images && form.images.length > 0 && (
+                <div className="img-grid">
+                  {form.images.map((src, idx) => (
+                    <div className="img-thumb-wrap" key={idx}>
+                      <img src={src} alt="" onClick={() => openLightbox(form.images, idx)} />
+                      <button type="button" className="img-remove" onClick={() => removeImage(idx)}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="modal-actions">
+              <div>{editingId && <button type="button" className="btn-ghost" onClick={() => deleteProject(editingId)}>Hapus proyek</button>}</div>
+              <div className="modal-actions-right">
+                <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)}>Batal</button>
+                <button type="submit" className="btn-primary">Simpan</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<ProjectBoard />);
+</script>
+</body>
+</html>
